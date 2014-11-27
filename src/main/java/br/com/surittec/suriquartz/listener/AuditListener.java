@@ -38,6 +38,7 @@ import org.quartz.listeners.TriggerListenerSupport;
 import org.quartz.spi.ClassLoadHelper;
 import org.quartz.spi.SchedulerPlugin;
 
+import br.com.surittec.suriquartz.annotation.Audit;
 import br.com.surittec.suriquartz.spi.AuditStore;
 
 public class AuditListener extends TriggerListenerSupport implements SchedulerPlugin {
@@ -68,9 +69,17 @@ public class AuditListener extends TriggerListenerSupport implements SchedulerPl
 	@Override
 	public void triggerComplete(Trigger trigger, JobExecutionContext context, CompletedExecutionInstruction triggerInstructionCode) {
 		try {
-			TriggerKey triggerKey = (context.getPreviousFireTime() != null || context.getNextFireTime() != null) ? trigger.getKey() : null;
-			long fireTime = context.getFireTime().getTime();
-			auditStore.storeAudit(trigger.getJobKey(), triggerKey, fireTime, fireTime + context.getJobRunTime());
+			
+			Audit audit = context.getJobDetail().getJobClass().getAnnotation(Audit.class);
+			if(audit != null){
+				TriggerKey triggerKey = (context.getPreviousFireTime() != null || context.getNextFireTime() != null) ? trigger.getKey() : null;
+				
+				if(audit.onlyTemporaryTrigger() && triggerKey != null) return;
+				
+				long fireTime = context.getFireTime().getTime();
+				auditStore.storeAudit(trigger.getJobKey(), triggerKey, fireTime, fireTime + context.getJobRunTime());
+			}
+			
 		} catch (JobPersistenceException e) {
 			getLog().error("Couldn't audit job: "+ e.getMessage(), e);
 		}
