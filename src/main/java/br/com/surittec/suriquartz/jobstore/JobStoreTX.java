@@ -23,39 +23,56 @@ package br.com.surittec.suriquartz.jobstore;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 import org.quartz.JobKey;
 import org.quartz.JobPersistenceException;
 import org.quartz.TriggerKey;
 
 import br.com.surittec.suriquartz.spi.AuditStore;
+import br.com.surittec.util.message.Message;
 
-public class JobStoreTX extends org.quartz.impl.jdbcjobstore.JobStoreTX  implements AuditStore{
+public class JobStoreTX extends org.quartz.impl.jdbcjobstore.JobStoreTX implements AuditStore {
 
 	private AuditDelegate auditDelegate;
-	
+
 	@Override
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void storeAudit(final JobKey jobKey, final TriggerKey triggerKey, final long startTime, final long endTime) throws JobPersistenceException {
-		
-		executeWithoutLock(
-            new TransactionCallback() {
-                public Object execute(Connection conn) throws JobPersistenceException {
-                	try {
-						return getAuditDelegate().audit(conn, jobKey, triggerKey, startTime, endTime);
-					} catch (IOException | SQLException e) {
-						throw new JobPersistenceException("Couldn't audit job: "
-			                    + e.getMessage(), e);
-					}
-                }
-            });
+	public void storeAudit(final JobKey jobKey, final TriggerKey triggerKey, final long startTime, final long endTime)
+			throws JobPersistenceException {
+
+		executeWithoutLock(new TransactionCallback() {
+			public Object execute(Connection conn) throws JobPersistenceException {
+				try {
+					return getAuditDelegate().audit(conn, jobKey, triggerKey, startTime, endTime);
+				} catch (IOException | SQLException e) {
+					throw new JobPersistenceException("Couldn't audit job: " + e.getMessage(), e);
+				}
+			}
+		});
 	}
-	
-	protected AuditDelegate getAuditDelegate(){
-		if(auditDelegate == null){
+
+	@Override
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public void storeAuditError(final JobKey jobKey, final TriggerKey triggerKey, final long startTime, final long endTime, final String stacktrace,
+			final List<Message> errosMessages) throws JobPersistenceException {
+
+		executeWithoutLock(new TransactionCallback() {
+			public Object execute(Connection conn) throws JobPersistenceException {
+				try {
+					return getAuditDelegate().auditError(conn, jobKey, triggerKey, startTime, endTime, stacktrace, errosMessages);
+				} catch (IOException | SQLException e) {
+					throw new JobPersistenceException("Couldn't audit job: " + e.getMessage(), e);
+				}
+			}
+		});
+	}
+
+	protected AuditDelegate getAuditDelegate() {
+		if (auditDelegate == null) {
 			auditDelegate = new AuditDelegate(tablePrefix, instanceName, instanceId);
 		}
 		return auditDelegate;
 	}
-	
+
 }
