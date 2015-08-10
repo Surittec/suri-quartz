@@ -20,12 +20,20 @@
  */
 package br.com.surittec.suriquartz.spi;
 
+import java.util.List;
+
 import org.quartz.JobKey;
 import org.quartz.JobPersistenceException;
 import org.quartz.TriggerKey;
 
+import br.com.surittec.util.message.Message;
+
 public interface AuditStore {
-	
-	void storeAudit(final JobKey jobKey, final TriggerKey triggerKey, final long startTime, final long endTime) throws JobPersistenceException; 
-	
+
+	void storeAudit(final JobKey jobKey, final TriggerKey triggerKey, final long startTime, final long endTime)
+			throws JobPersistenceException;
+
+	void storeAuditError(final JobKey jobKey, final TriggerKey triggerKey, final long startTime, final long endTime, final String error,
+			List<Message> errosMessage) throws JobPersistenceException;
+
 }
