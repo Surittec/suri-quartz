@@ -106,13 +106,12 @@ public class AuditErrorListener implements JobListener, SchedulerPlugin {
 	 */
 
 	private List<Message> getMessages(Throwable rootCause) {
-		if (rootCause instanceof BusinessException) {
+		if (rootCause.getMessage() == null || rootCause.getMessage().isEmpty())
+			return Collections.emptyList();
+		else if (rootCause instanceof BusinessException)
 			return ((BusinessException) rootCause).getErrors();
-		} else {
-			if (rootCause.getMessage() == null || rootCause.getMessage().isEmpty())
-				return Collections.emptyList();
+		else
 			return Arrays.asList(new Message("", null, rootCause.getMessage(), null));
-		}
 	}
 
 }
