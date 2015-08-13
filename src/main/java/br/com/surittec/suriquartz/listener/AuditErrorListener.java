@@ -21,6 +21,7 @@
 package br.com.surittec.suriquartz.listener;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.quartz.JobExecutionContext;
@@ -62,7 +63,9 @@ public class AuditErrorListener implements JobListener, SchedulerPlugin {
 		try {
 
 			Audit audit = context.getJobDetail().getJobClass().getAnnotation(Audit.class);
-			if (audit != null && !jobException.getMessage().equals("")) {
+			if (audit != null && jobException != null) {
+				Throwable rootCause = ExceptionUtil.getRootCause(jobException);
+
 				TriggerKey triggerKey =
 						(context.getPreviousFireTime() != null || context.getNextFireTime() != null) ? context.getTrigger().getKey() : null;
 
@@ -70,8 +73,9 @@ public class AuditErrorListener implements JobListener, SchedulerPlugin {
 					return;
 
 				long fireTime = context.getFireTime().getTime();
-				AuditStoreUtil.getAuditStore(context.getScheduler()).storeAuditError(context.getTrigger().getJobKey(),
-						triggerKey, fireTime, fireTime + context.getJobRunTime(), getStackTrace(jobException), getMessages(jobException));
+				AuditStoreUtil.getAuditStore(context.getScheduler()).storeAuditError(context.getTrigger().getJobKey(), triggerKey,
+						fireTime, fireTime + context.getJobRunTime(), ExceptionUtil.getStackTrace(rootCause), getMessages(rootCause));
+
 			}
 		} catch (JobPersistenceException e) {
 			log.error("Couldn't audit job: " + e.getMessage(), e);
@@ -101,18 +105,13 @@ public class AuditErrorListener implements JobListener, SchedulerPlugin {
 	 * Private Methods
 	 */
 
-	private String getStackTrace(Throwable e) {
-		if (e.getCause().getCause() == null) {
-			return ExceptionUtil.getStackTrace(e);
-		} else {
-			return ExceptionUtil.getStackTrace(e.getCause().getCause());
-		}
+	private List<Message> getMessages(Throwable rootCause) {
+		if (rootCause.getMessage() == null || rootCause.getMessage().isEmpty())
+			return Collections.emptyList();
+		else if (rootCause instanceof BusinessException)
+			return ((BusinessException) rootCause).getErrors();
+		else
+			return Arrays.asList(new Message("", null, rootCause.getMessage(), null));
 	}
 
-	private List<Message> getMessages(Throwable e) {
-		if (e.getCause().getCause() != null && e.getCause().getCause() instanceof BusinessException) {
-			return ((BusinessException) e.getCause().getCause()).getErrors();
-		} else
-			return Arrays.asList(new Message("", null, e.getMessage(), null));
-	}
 }

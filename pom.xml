@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>suri-quartz</artifactId>
-	<version>1.0.2</version>
+	<version>1.0.3</version>
 	<packaging>jar</packaging>
 
 	<name>Suri Quartz</name>
@@ -75,7 +75,7 @@
 		<quartz.version>2.2.1</quartz.version>
 		<junit.version>4.11</junit.version>
 		
-		<suri-util.version>1.0.5</suri-util.version>
+		<suri-util.version>1.0.6</suri-util.version>
 	</properties>
 	
 </project>
