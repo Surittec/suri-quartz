@@ -45,6 +45,7 @@ import br.com.surittec.util.message.Message;
 public class AuditErrorListener implements JobListener, SchedulerPlugin {
 
 	private static final String LISTENER_NAME = "AuditErrorListener";
+	private static final int STACKTRACE_MAX_SIZE = 1000;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -73,9 +74,11 @@ public class AuditErrorListener implements JobListener, SchedulerPlugin {
 					return;
 
 				long fireTime = context.getFireTime().getTime();
+				String stacktrace = ExceptionUtil.getStackTrace(rootCause);
+				if (stacktrace != null && stacktrace.length() > STACKTRACE_MAX_SIZE)
+					stacktrace = stacktrace.substring(0, STACKTRACE_MAX_SIZE);
 				AuditStoreUtil.getAuditStore(context.getScheduler()).storeAuditError(context.getTrigger().getJobKey(), triggerKey,
-						fireTime, fireTime + context.getJobRunTime(), ExceptionUtil.getStackTrace(rootCause), getMessages(rootCause));
-
+						fireTime, fireTime + context.getJobRunTime(), stacktrace, getMessages(rootCause));
 			}
 		} catch (JobPersistenceException e) {
 			log.error("Couldn't audit job: " + e.getMessage(), e);
